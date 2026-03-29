@@ -1,94 +1,75 @@
-{% set action_colors = {
-  'BUY': 'text-green-400 bg-green-900/30 border-green-700',
-  'WATCH': 'text-yellow-400 bg-yellow-900/30 border-yellow-700',
-  'AVOID': 'text-red-400 bg-red-900/30 border-red-700'
-} %}
-{% set signal_icons = {
-  'VOLUME_SPIKE': '📊',
-  'BULK_DEAL_BUY': '🏦',
-  'BULK_DEAL_SELL': '🏦',
-  'INSIDER_BUY': '👤',
-  'INSIDER_SELL': '👤',
-  'PROMOTER_HOLDING_UP': '📈',
-  'PROMOTER_HOLDING_DOWN': '📉',
-  'CONFLUENCE': '⚡',
-  'PRICE_BREAKOUT': '🚀'
-} %}
-
 {% if opportunities %}
-  {% for opp in opportunities %}
-  {% set confidence = opp.confidence if opp.confidence else 0 %}
-  <div class="signal-card bg-gray-900 border border-gray-700 rounded-xl p-5 cursor-pointer hover:border-blue-600"
-       onclick="showReasoning(
-         '{{ opp.symbol }}',
-         {{ (opp.reasoning_chain or '') | tojson }},
-         {{ (opp.key_catalysts or []) | tojson }},
-         {{ (opp.risk_factors or []) | tojson }}
-       )">
-
-    <div class="flex items-start justify-between mb-3">
-      <div class="flex items-center gap-3">
-        <span class="text-xl font-bold text-gray-500">#{{ opp.rank }}</span>
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="text-lg font-bold text-white">{{ opp.symbol }}</span>
-            <span class="text-base">{{ signal_icons.get(opp.signal_type, '🔍') }}</span>
-          </div>
-          <div class="text-xs text-gray-500 mt-0.5">
-            {{ opp.signal_type | replace('_', ' ') | title }}
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Symbol</th>
+      <th>Signal</th>
+      <th>Action</th>
+      <th>Confidence</th>
+      <th>Timeframe</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for opp in opportunities %}
+    {% set conf = opp.confidence if opp.confidence else 0 %}
+    <tr style="cursor:pointer;" onclick="showReasoning(
+        '{{ opp.symbol }}',
+        {{ (opp.reasoning_chain or '') | tojson }},
+        {{ (opp.key_catalysts or []) | tojson }},
+        {{ (opp.risk_factors or []) | tojson }}
+      )">
+      <td style="color:var(--muted);width:32px;" class="num">{{ opp.rank }}</td>
+      <td>
+        <a href="/stock/{{ opp.symbol }}"
+           onclick="event.stopPropagation()"
+           style="font-weight:700;color:#fff;letter-spacing:0.3px;">
+          {{ opp.symbol }}
+        </a>
+      </td>
+      <td style="color:var(--muted);">{{ opp.signal_type | replace('_', ' ') }}</td>
+      <td>
+        {% if opp.action == 'BUY' %}
+          <span class="tag tag-buy">BUY</span>
+        {% elif opp.action == 'AVOID' %}
+          <span class="tag tag-avoid">AVOID</span>
+        {% else %}
+          <span class="tag tag-watch">WATCH</span>
+        {% endif %}
+      </td>
+      <td style="width:120px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="num" style="font-size:12px;
+            {% if conf >= 0.75 %}color:var(--green)
+            {% elif conf >= 0.55 %}color:var(--yellow)
+            {% else %}color:var(--red){% endif %}">
+            {{ "%.0f"|format(conf * 100) }}%
+          </span>
+          <div class="conf-bar" style="flex:1;">
+            <div class="conf-fill" style="width:{{ "%.0f"|format(conf * 100) }}%;
+              background:{% if conf >= 0.75 %}var(--green){% elif conf >= 0.55 %}var(--yellow){% else %}var(--red){% endif %}">
+            </div>
           </div>
         </div>
-      </div>
-
-      <div class="flex flex-col items-end gap-2">
-        <span class="text-xs font-semibold border px-2 py-1 rounded
-          {{ action_colors.get(opp.action, 'text-gray-400 bg-gray-800 border-gray-700') }}">
-          {{ opp.action }}
-        </span>
-        <span class="text-xs text-gray-500">{{ opp.timeframe or 'Unknown' }}</span>
-      </div>
-    </div>
-
-    <!-- Confidence bar -->
-    <div class="mb-3">
-      <div class="flex justify-between text-xs text-gray-500 mb-1">
-        <span>Confidence</span>
-        <span class="font-semibold {% if confidence >= 0.75 %}text-green-400{% elif confidence >= 0.55 %}text-yellow-400{% else %}text-red-400{% endif %}">
-          {{ "%.0f"|format(confidence * 100) }}%
-        </span>
-      </div>
-      <div class="w-full bg-gray-800 rounded-full h-1.5">
-        <div class="confidence-bar h-1.5 rounded-full
-          {% if confidence >= 0.75 %}bg-green-500{% elif confidence >= 0.55 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
-          style="width: {{ "%.0f"|format(confidence * 100) }}%">
-        </div>
-      </div>
-    </div>
-
-    <!-- Reasoning snippet -->
-    <p class="text-xs text-gray-400 leading-relaxed line-clamp-2">
-      {{ opp.reasoning_chain[:180] if opp.reasoning_chain else 'No reasoning available.' }}...
-    </p>
-
-    <div class="flex items-center justify-between mt-3">
-      <a href="/stock/{{ opp.symbol }}" onclick="event.stopPropagation()"
-         class="text-xs text-blue-400 hover:text-blue-300">View full analysis →</a>
-      {% if opp.voice_briefing_path %}
-      <audio controls class="h-7" style="width: 140px;">
-        <source src="/static/briefings/briefing_{{ opp.cycle_id }}.mp3" type="audio/mpeg">
-      </audio>
-      {% endif %}
-    </div>
-  </div>
-  {% endfor %}
+      </td>
+      <td style="color:var(--muted);font-size:12px;">{{ opp.timeframe or '—' }}</td>
+      <td style="text-align:right;">
+        <a href="/stock/{{ opp.symbol }}"
+           onclick="event.stopPropagation()"
+           style="font-size:11px;color:var(--blue);">Details</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% else %}
-  <div class="bg-gray-900 border border-gray-800 rounded-xl p-8 text-center">
-    <div class="text-4xl mb-3">🔍</div>
-    <div class="text-gray-400 font-medium">No opportunities detected yet</div>
-    <div class="text-xs text-gray-600 mt-2">Run a cycle to start scanning the market</div>
-    <button hx-post="/api/run-cycle" hx-target="#run-status"
-      class="mt-4 text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition">
-      Run First Cycle
-    </button>
-  </div>
+<div style="padding:40px;text-align:center;color:var(--muted);">
+  <div style="font-size:13px;margin-bottom:8px;">No opportunities detected yet</div>
+  <div style="font-size:12px;">Run a cycle to start scanning the market</div>
+  <button class="btn" style="margin-top:12px;"
+    hx-post="/api/run-cycle" hx-target="#run-status">
+    Run First Cycle
+  </button>
+</div>
 {% endif %}

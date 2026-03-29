@@ -5,66 +5,360 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{% block title %}Opportunity Radar{% endblock %}</title>
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
   <style>
-    body { font-family: 'Segoe UI', system-ui, sans-serif; }
-    .pulse-dot {
-      display: inline-block; width: 10px; height: 10px;
-      background: #ef4444; border-radius: 50%;
-      animation: pulse 2s infinite;
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #131722;
+      --surface:   #1e222d;
+      --surface2:  #2a2e39;
+      --border:    #2a2e39;
+      --text:      #d1d4dc;
+      --muted:     #787b86;
+      --green:     #089981;
+      --green-dim: rgba(8,153,129,0.12);
+      --red:       #f23645;
+      --red-dim:   rgba(242,54,69,0.12);
+      --blue:      #2962ff;
+      --yellow:    #f7a600;
+      --yellow-dim:rgba(247,166,0,0.12);
     }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.3); }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      min-height: 100vh;
     }
-    .signal-card { transition: all 0.2s ease; }
-    .signal-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
-    .confidence-bar { transition: width 0.5s ease; }
+
+    a { color: inherit; text-decoration: none; }
+
+    /* Header */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 24px; }
+
+    .logo {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: #fff;
+    }
+    .logo span { color: var(--blue); }
+
+    .nav-link {
+      color: var(--muted);
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 3px;
+      transition: color 0.15s;
+    }
+    .nav-link:hover, .nav-link.active { color: var(--text); }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: blink 2s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+    .btn {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 3px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .status-text { color: var(--muted); font-size: 12px; }
+
+    /* Layout */
+    .main { padding: 16px 24px; max-width: 1400px; margin: 0 auto; }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .card-header {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--muted);
+    }
+
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      padding: 8px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    td {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(42,46,57,0.6);
+      font-size: 13px;
+      color: var(--text);
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    /* Tags */
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 2px;
+      letter-spacing: 0.3px;
+    }
+    .tag-buy   { background: var(--green-dim); color: var(--green); }
+    .tag-sell  { background: var(--red-dim);   color: var(--red);   }
+    .tag-watch { background: var(--yellow-dim);color: var(--yellow);}
+    .tag-avoid { background: var(--red-dim);   color: var(--red);   }
+    .tag-high  { background: var(--red-dim);   color: var(--red);   }
+    .tag-medium{ background: var(--yellow-dim);color: var(--yellow);}
+    .tag-low   { color: var(--muted); }
+
+    /* Confidence bar */
+    .conf-bar {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      overflow: hidden;
+      margin-top: 4px;
+    }
+    .conf-fill {
+      height: 100%;
+      border-radius: 1px;
+      transition: width 0.4s ease;
+    }
+
+    /* Signal row */
+    .signal-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-bottom: 1px solid rgba(42,46,57,0.6);
+      cursor: default;
+      transition: background 0.1s;
+    }
+    .signal-row:last-child { border-bottom: none; }
+    .signal-row:hover { background: rgba(255,255,255,0.02); }
+
+    /* Mono numbers */
+    .num { font-variant-numeric: tabular-nums; font-family: 'Courier New', monospace; }
+
+    /* Scrollable */
+    .scrollable { overflow-y: auto; }
+    .scrollable::-webkit-scrollbar { width: 4px; }
+    .scrollable::-webkit-scrollbar-track { background: transparent; }
+    .scrollable::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .col-span-2 { grid-column: span 2; }
+
+    @media (max-width: 900px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .col-span-2 { grid-column: span 1; }
+    }
+
+    /* Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 9999;
+      min-width: 280px;
+      max-width: 360px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      transform: translateY(80px);
+      opacity: 0;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+      pointer-events: none;
+    }
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .toast-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .toast-msg { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .toast-progress {
+      height: 2px;
+      background: var(--border);
+      border-radius: 1px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+    .toast-progress-fill {
+      height: 100%;
+      background: var(--blue);
+      border-radius: 1px;
+      width: 0%;
+      transition: width linear;
+    }
   </style>
 </head>
-<body class="bg-gray-950 text-gray-100 min-h-screen">
+<body>
 
-  <!-- Header -->
-  <header class="border-b border-gray-800 px-6 py-4">
-    <div class="max-w-7xl mx-auto flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="pulse-dot"></span>
-        <h1 class="text-xl font-bold tracking-tight">
-          <span class="text-blue-400">Opportunity</span> Radar
-        </h1>
-        <span class="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">AI for the Indian Investor</span>
-        {% if demo_mode is defined and demo_mode %}
-        <span class="text-xs text-amber-400 bg-amber-900/30 border border-amber-700 px-2 py-0.5 rounded">DEMO MODE</span>
-        {% endif %}
-      </div>
-      <div class="flex items-center gap-4 text-sm text-gray-400">
-        <span id="last-updated">Updating...</span>
-        <button
-          id="run-btn"
-          hx-post="/api/run-cycle"
-          hx-target="#run-status"
-          hx-on::before-request="this.disabled=true; this.textContent='Running...'; this.classList.replace('bg-blue-600','bg-gray-600')"
-          hx-on::after-request="setTimeout(()=>{this.disabled=false;this.textContent='Run Cycle';this.classList.replace('bg-gray-600','bg-blue-600')},120000)"
-          class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition">
-          Run Cycle
-        </button>
-        <span id="run-status" class="text-xs text-green-400"></span>
-      </div>
-    </div>
-  </header>
+<header class="header">
+  <div class="header-left">
+    <div class="logo"><span>Opportunity</span> Radar</div>
+    <nav style="display:flex;gap:4px;">
+      <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Dashboard</a>
+      <a href="/backtest" class="nav-link {% if request.url.path == '/backtest' %}active{% endif %}">Backtest</a>
+    </nav>
+  </div>
+  <div class="header-right">
+    <div class="live-dot"></div>
+    <span class="status-text" id="last-updated">—</span>
+    <button id="run-btn" class="btn" onclick="triggerCycle()">
+      Run Cycle
+    </button>
+  </div>
+</header>
 
-  <main class="max-w-7xl mx-auto px-6 py-6">
-    {% block content %}{% endblock %}
-  </main>
+<main class="main">
+  {% block content %}{% endblock %}
+</main>
 
-  <script>
-    // Update last-updated timestamp
-    setInterval(() => {
-      document.getElementById('last-updated').textContent =
-        'Last: ' + new Date().toLocaleTimeString('en-IN');
-    }, 1000);
-  </script>
+<!-- Toast -->
+<div id="toast">
+  <div class="toast-title">
+    <div class="live-dot" id="toast-dot"></div>
+    <span id="toast-title-text">Running cycle...</span>
+  </div>
+  <div class="toast-msg" id="toast-msg">Initializing pipeline</div>
+  <div class="toast-progress"><div class="toast-progress-fill" id="toast-bar"></div></div>
+</div>
 
+<script>
+  setInterval(() => {
+    document.getElementById('last-updated').textContent =
+      new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }, 1000);
+
+  const STEPS = [
+    [0,   'Fetching NSE market data...'],
+    [12,  'Downloading bhavcopy & bulk deals...'],
+    [25,  'Fetching insider trades & announcements...'],
+    [38,  'Running signal detectors...'],
+    [50,  'Detecting volume spikes & breakouts...'],
+    [62,  'Enriching signals with news context...'],
+    [74,  'AI Strategist ranking opportunities...'],
+    [88,  'Generating voice briefing...'],
+    [95,  'Publishing results to dashboard...'],
+  ];
+
+  let toastTimer = null;
+  let stepIndex = 0;
+  let progressInterval = null;
+
+  function showToast(title, msg, pct, color) {
+    const t = document.getElementById('toast');
+    document.getElementById('toast-title-text').textContent = title;
+    document.getElementById('toast-msg').textContent = msg;
+    const bar = document.getElementById('toast-bar');
+    bar.style.transition = 'width 1.5s linear';
+    bar.style.background = color || 'var(--blue)';
+    bar.style.width = pct + '%';
+    t.classList.add('show');
+  }
+
+  function hideToast(delay = 3000) {
+    setTimeout(() => {
+      document.getElementById('toast').classList.remove('show');
+    }, delay);
+  }
+
+  async function triggerCycle() {
+    const btn = document.getElementById('run-btn');
+    btn.disabled = true;
+    btn.textContent = 'Running...';
+
+    stepIndex = 0;
+    showToast('Pipeline Started', STEPS[0][1], STEPS[0][0]);
+
+    // Walk through steps every ~7s (total ~63s matching typical cycle)
+    progressInterval = setInterval(() => {
+      stepIndex = Math.min(stepIndex + 1, STEPS.length - 1);
+      const [pct, msg] = STEPS[stepIndex];
+      showToast('Running Cycle', msg, pct);
+    }, 7000);
+
+    try {
+      const resp = await fetch('/api/run-cycle', { method: 'POST' });
+      const data = await resp.json();
+    } catch(e) {}
+
+    // After ~90s show completion
+    toastTimer = setTimeout(() => {
+      clearInterval(progressInterval);
+      const bar = document.getElementById('toast-bar');
+      bar.style.transition = 'width 0.5s ease';
+      bar.style.background = 'var(--green)';
+      bar.style.width = '100%';
+      showToast('Cycle Complete', 'Dashboard updated with latest opportunities', 100, 'var(--green)');
+      hideToast(4000);
+      btn.disabled = false;
+      btn.textContent = 'Run Cycle';
+    }, 90000);
+  }
+</script>
 </body>
 </html>
