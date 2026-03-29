@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Opportunity Radar{% endblock %}</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', system-ui, sans-serif; }
+    .pulse-dot {
+      display: inline-block; width: 10px; height: 10px;
+      background: #ef4444; border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.3); }
+    }
+    .signal-card { transition: all 0.2s ease; }
+    .signal-card:hover { transform: translateY(-2px); box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+    .confidence-bar { transition: width 0.5s ease; }
+  </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-gray-800 px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="pulse-dot"></span>
+        <h1 class="text-xl font-bold tracking-tight">
+          <span class="text-blue-400">Opportunity</span> Radar
+        </h1>
+        <span class="text-xs text-gray-500 bg-gray-800 px-2 py-0.5 rounded">AI for the Indian Investor</span>
+        {% if demo_mode is defined and demo_mode %}
+        <span class="text-xs text-amber-400 bg-amber-900/30 border border-amber-700 px-2 py-0.5 rounded">DEMO MODE</span>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-4 text-sm text-gray-400">
+        <span id="last-updated">Updating...</span>
+        <button
+          id="run-btn"
+          hx-post="/api/run-cycle"
+          hx-target="#run-status"
+          hx-on::before-request="this.disabled=true; this.textContent='Running...'; this.classList.replace('bg-blue-600','bg-gray-600')"
+          hx-on::after-request="setTimeout(()=>{this.disabled=false;this.textContent='Run Cycle';this.classList.replace('bg-gray-600','bg-blue-600')},120000)"
+          class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded transition">
+          Run Cycle
+        </button>
+        <span id="run-status" class="text-xs text-green-400"></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    // Update last-updated timestamp
+    setInterval(() => {
+      document.getElementById('last-updated').textContent =
+        'Last: ' + new Date().toLocaleTimeString('en-IN');
+    }, 1000);
+  </script>
+
+</body>
+</html>

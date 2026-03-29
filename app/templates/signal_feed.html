@@ -1,0 +1,52 @@
+{% set severity_colors = {
+  'HIGH': 'border-l-red-500 bg-red-950/20',
+  'MEDIUM': 'border-l-yellow-500 bg-yellow-950/20',
+  'LOW': 'border-l-gray-600 bg-gray-900/30'
+} %}
+{% set type_icons = {
+  'VOLUME_SPIKE': '📊',
+  'BULK_DEAL_BUY': '🟢',
+  'BULK_DEAL_SELL': '🔴',
+  'INSIDER_BUY': '👤',
+  'INSIDER_SELL': '⚠️',
+  'PROMOTER_HOLDING_UP': '📈',
+  'PROMOTER_HOLDING_DOWN': '📉',
+  'CONFLUENCE': '⚡',
+  'RESULT_SURPRISE': '📋'
+} %}
+
+{% if signals %}
+  {% for sig in signals %}
+  <div class="border-l-2 pl-3 py-2 rounded-r
+    {{ severity_colors.get(sig.severity, 'border-l-gray-600') }}">
+    <div class="flex items-start justify-between gap-2">
+      <div class="flex items-start gap-2 min-w-0">
+        <span class="text-sm mt-0.5">{{ type_icons.get(sig.signal_type, '🔍') }}</span>
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-white">{{ sig.symbol }}</span>
+            <span class="text-xs text-gray-500">{{ sig.signal_type | replace('_', ' ') | title }}</span>
+          </div>
+          <div class="text-xs text-gray-400 mt-0.5 truncate">
+            {{ sig.metric_label or 'Signal detected' }}
+          </div>
+        </div>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <span class="text-xs px-1.5 py-0.5 rounded
+          {% if sig.severity == 'HIGH' %}text-red-400 bg-red-900/40{% elif sig.severity == 'MEDIUM' %}text-yellow-400 bg-yellow-900/40{% else %}text-gray-400 bg-gray-800{% endif %}">
+          {{ sig.severity }}
+        </span>
+        <div class="text-xs text-gray-600 mt-1">
+          {{ sig.detected_at[:16] if sig.detected_at else '' }}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+{% else %}
+  <div class="text-center py-8 text-gray-600">
+    <div class="text-2xl mb-2">📡</div>
+    <div class="text-sm">Waiting for signals...</div>
+  </div>
+{% endif %}

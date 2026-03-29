@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{{ opp.symbol }} — Opportunity Radar{% endblock %}
+
+{% block content %}
+{% set action_colors = {
+  'BUY': 'text-green-400 bg-green-900/30 border-green-700',
+  'WATCH': 'text-yellow-400 bg-yellow-900/30 border-yellow-700',
+  'AVOID': 'text-red-400 bg-red-900/30 border-red-700'
+} %}
+
+<!-- Back button -->
+<a href="/" class="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-white mb-6 transition">
+  ← Back to Dashboard
+</a>
+
+<!-- Header -->
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-3xl font-bold text-white">{{ opp.symbol }}</h1>
+    <div class="text-gray-400 text-sm mt-1">{{ opp.signal_type | replace('_', ' ') | title }}</div>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="text-sm font-semibold border px-3 py-1.5 rounded
+      {{ action_colors.get(opp.action, 'text-gray-400 bg-gray-800 border-gray-700') }}">
+      {{ opp.action }}
+    </span>
+    <span class="text-xs text-gray-400">{{ opp.timeframe or '' }}</span>
+  </div>
+</div>
+
+<!-- Confidence + Reasoning -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+  <div class="lg:col-span-2 bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">AI Reasoning Chain</h2>
+    <p class="text-gray-200 leading-relaxed">
+      {{ opp.reasoning_chain or 'No reasoning available. Run a cycle to generate analysis.' }}
+    </p>
+
+    {% if opp.key_catalysts %}
+    <div class="mt-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Key Catalysts</div>
+      <ul class="space-y-1">
+        {% for c in opp.key_catalysts %}
+        <li class="flex items-start gap-2 text-sm text-green-400">
+          <span class="mt-0.5">▲</span><span>{{ c }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    {% if opp.risk_factors %}
+    <div class="mt-4">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Risk Factors</div>
+      <ul class="space-y-1">
+        {% for r in opp.risk_factors %}
+        <li class="flex items-start gap-2 text-sm text-red-400">
+          <span class="mt-0.5">▼</span><span>{{ r }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="space-y-4">
+    <!-- Confidence -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-2">Confidence Score</div>
+      {% set confidence = opp.confidence if opp.confidence else 0 %}
+      <div class="text-4xl font-bold
+        {% if confidence >= 0.75 %}text-green-400{% elif confidence >= 0.55 %}text-yellow-400{% else %}text-red-400{% endif %}">
+        {{ "%.0f"|format(confidence * 100) }}%
+      </div>
+      <div class="w-full bg-gray-800 rounded-full h-2 mt-3">
+        <div class="h-2 rounded-full
+          {% if confidence >= 0.75 %}bg-green-500{% elif confidence >= 0.55 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+          style="width: {{ "%.0f"|format(confidence * 100) }}%">
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Signals Count -->
+    <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+      <div class="text-xs text-gray-500 uppercase tracking-wider mb-3">Signal History</div>
+      {% for sig in signals[:5] %}
+      <div class="flex items-center justify-between text-sm py-1.5 border-b border-gray-800 last:border-0">
+        <span class="text-gray-300">{{ sig.signal_type | replace('_', ' ') }}</span>
+        <span class="text-xs
+          {% if sig.severity == 'HIGH' %}text-red-400
+          {% elif sig.severity == 'MEDIUM' %}text-yellow-400
+          {% else %}text-gray-500{% endif %}">
+          {{ sig.severity }}
+        </span>
+      </div>
+      {% else %}
+      <div class="text-xs text-gray-600">No signal history</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- Price Chart -->
+{% if price_history %}
+<div class="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-6">
+  <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Price History</h2>
+  <div id="price-chart" style="height: 280px;"></div>
+</div>
+{% endif %}
+
+<!-- Bulk Deals + Insider Trades -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+  {% if bulk_deals %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Recent Bulk Deals</h2>
+    <div class="space-y-2">
+      {% for deal in bulk_deals[:5] %}
+      <div class="flex items-center justify-between text-sm py-1.5 border-b border-gray-800 last:border-0">
+        <div>
+          <span class="text-gray-300">{{ deal.client_name[:30] }}</span>
+          <span class="text-xs ml-2
+            {% if deal.deal_type == 'BUY' %}text-green-400{% else %}text-red-400{% endif %}">
+            {{ deal.deal_type }}
+          </span>
+        </div>
+        <div class="text-right">
+          <div class="text-gray-200">₹{{ "%.1f"|format(deal.value_cr or 0) }}Cr</div>
+          <div class="text-xs text-gray-500">{{ deal.date }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if insider_trades %}
+  <div class="bg-gray-900 border border-gray-800 rounded-xl p-5">
+    <h2 class="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-4">Insider Trades</h2>
+    <div class="space-y-2">
+      {% for trade in insider_trades[:5] %}
+      <div class="flex items-center justify-between text-sm py-1.5 border-b border-gray-800 last:border-0">
+        <div>
+          <span class="text-gray-300">{{ trade.person_name[:25] }}</span>
+          <span class="text-xs ml-2
+            {% if trade.trade_type == 'BUY' %}text-green-400{% else %}text-red-400{% endif %}">
+            {{ trade.trade_type }}
+          </span>
+        </div>
+        <div class="text-right">
+          <div class="text-gray-200">₹{{ "%.1f"|format((trade.value_lakh or 0)) }}L</div>
+          <div class="text-xs text-gray-500">{{ trade.date }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% if price_history %}
+<script>
+const dates = {{ price_history | map(attribute='date') | list | tojson }};
+const closes = {{ price_history | map(attribute='close') | list | tojson }};
+const volumes = {{ price_history | map(attribute='volume') | list | tojson }};
+
+Plotly.newPlot('price-chart', [
+  {
+    x: dates, y: closes,
+    type: 'scatter', mode: 'lines',
+    name: 'Close',
+    line: { color: '#60a5fa', width: 2 },
+    yaxis: 'y'
+  },
+  {
+    x: dates, y: volumes,
+    type: 'bar',
+    name: 'Volume',
+    marker: { color: 'rgba(99,102,241,0.4)' },
+    yaxis: 'y2'
+  }
+], {
+  paper_bgcolor: 'transparent',
+  plot_bgcolor: 'transparent',
+  font: { color: '#9ca3af', size: 11 },
+  margin: { t: 10, r: 60, b: 40, l: 60 },
+  xaxis: { gridcolor: '#1f2937', showgrid: true },
+  yaxis: { gridcolor: '#1f2937', showgrid: true, title: 'Price (₹)' },
+  yaxis2: { overlaying: 'y', side: 'right', showgrid: false, title: 'Volume' },
+  showlegend: true,
+  legend: { bgcolor: 'transparent' }
+}, { responsive: true, displayModeBar: false });
+</script>
+{% endif %}
+{% endblock %}
