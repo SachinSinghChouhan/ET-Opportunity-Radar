@@ -2,12 +2,11 @@
 langgraph>=0.2.0
 langchain>=0.3.0
 langchain-google-genai>=2.0.0
-langchain-openai>=0.2.0
-langchain-ollama>=0.2.0
+# langchain-openai and langchain-ollama removed — using Gemini only
 
 # Data ingestion & processing
 httpx>=0.27.0
-playwright>=1.44.0
+# playwright removed — not needed in DEMO_MODE; add back if using live NSE scraping
 beautifulsoup4>=4.12.0
 pandas>=2.2.0
 numpy>=1.26.0
@@ -28,7 +27,7 @@ plotly>=5.22.0
 
 # Voice
 gtts>=2.5.0
-pydub>=0.25.1
+# pydub removed — optional audio processing, saves ~50MB
 
 # Utilities
 pydantic>=2.7.0

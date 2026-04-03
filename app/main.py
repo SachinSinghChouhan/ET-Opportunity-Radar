@@ -2,6 +2,7 @@
 FastAPI application — serves the dashboard and API endpoints.
 """
 import json
+import os
 import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -35,20 +36,40 @@ async def _run_pipeline():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    # Run once on startup
-    asyncio.create_task(_run_pipeline())
-    # Schedule every 30 minutes
-    scheduler.add_job(
-        _run_pipeline,
-        trigger=IntervalTrigger(seconds=settings.pipeline_interval_seconds),
-        id="pipeline",
-        replace_existing=True,
-    )
-    scheduler.start()
-    logger.info("Opportunity Radar started. Dashboard at http://localhost:8000")
-    logger.info("Pipeline scheduled every 5 minutes. Next run in 5 min.")
+
+    # Vercel is a serverless environment — background tasks and schedulers
+    # don't persist between requests. Skip them and seed demo data instead.
+    is_vercel = os.environ.get("VERCEL") == "1"
+
+    if is_vercel or settings.demo_mode:
+        # Auto-seed demo data if the DB is empty
+        from app.database import get_latest_opportunities
+        if not get_latest_opportunities(limit=1):
+            logger.info("Empty DB detected — seeding demo data...")
+            try:
+                import runpy
+                seed_path = Path("scripts/seed_demo_data.py")
+                if seed_path.exists():
+                    runpy.run_path(str(seed_path))
+                    logger.info("Demo data seeded successfully.")
+            except Exception as e:
+                logger.warning("Demo seed failed (non-fatal): {}", e)
+    else:
+        # Long-running server: start background pipeline + scheduler
+        asyncio.create_task(_run_pipeline())
+        scheduler.add_job(
+            _run_pipeline,
+            trigger=IntervalTrigger(seconds=settings.pipeline_interval_seconds),
+            id="pipeline",
+            replace_existing=True,
+        )
+        scheduler.start()
+        logger.info("Pipeline scheduled every {} seconds.", settings.pipeline_interval_seconds)
+
+    logger.info("Opportunity Radar started.")
     yield
-    scheduler.shutdown()
+    if not is_vercel and not settings.demo_mode:
+        scheduler.shutdown()
 
 
 app = FastAPI(title="Opportunity Radar", lifespan=lifespan)
