@@ -8,7 +8,11 @@ from app.config import settings
 
 def get_db_path() -> str:
     path = Path(settings.db_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        # Read-only filesystem (e.g. Vercel serverless) — fall back to /tmp
+        path = Path("/tmp/opportunity_radar.db")
     return str(path)
 
 
