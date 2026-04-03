@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
 
     # Vercel is a serverless environment — background tasks and schedulers
     # don't persist between requests. Skip them and seed demo data instead.
-    is_vercel = os.environ.get("VERCEL") == "1"
+    is_vercel = IS_VERCEL
 
     if is_vercel or settings.demo_mode:
         # Auto-seed demo data if the DB is empty
@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI):
             logger.info("Empty DB detected — seeding demo data...")
             try:
                 import runpy
-                seed_path = Path("scripts/seed_demo_data.py")
+                seed_path = ROOT_DIR / "scripts" / "seed_demo_data.py"
                 if seed_path.exists():
                     runpy.run_path(str(seed_path))
                     logger.info("Demo data seeded successfully.")
@@ -74,11 +74,20 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Opportunity Radar", lifespan=lifespan)
 
-# Static files & templates
-static_dir = Path("app/static")
+# ── Resolve absolute paths (works on Vercel serverless too) ──────────────────
+APP_DIR = Path(__file__).parent          # …/app/
+ROOT_DIR = APP_DIR.parent               # …/opportunity-radar/
+IS_VERCEL = os.environ.get("VERCEL") == "1"
+
+# On Vercel the project FS is read-only except /tmp — put static there
+if IS_VERCEL:
+    static_dir = Path("/tmp/static")
+else:
+    static_dir = APP_DIR / "static"
 static_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
-templates = Jinja2Templates(directory="app/templates")
+
+app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
 
 
 # ── Pages ──────────────────────────────────────────────────────────────────────
