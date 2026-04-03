@@ -19,8 +19,10 @@ env/
 .env.*
 !.env.example
 
-# Database
-data/
+# Database — track the directory but ignore DB files
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 *.db
 *.sqlite
 *.sqlite3
