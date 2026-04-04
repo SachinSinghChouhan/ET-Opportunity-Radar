@@ -47,7 +47,6 @@ tests/
 
 # Docs / misc
 *.md
-*.txt
 *.pdf
 *.png
 *.mp3
