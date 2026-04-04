@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI):
                 import runpy
                 seed_path = ROOT_DIR / "scripts" / "seed_demo_data.py"
                 if seed_path.exists():
-                    runpy.run_path(str(seed_path))
+                    runpy.run_path(str(seed_path), run_name='__main__')
                     logger.info("Demo data seeded successfully.")
             except Exception as e:
                 logger.warning("Demo seed failed (non-fatal): {}", e)
@@ -201,6 +201,9 @@ async def get_briefing(cycle_id: str):
 @app.post("/api/run-cycle")
 async def run_cycle():
     """Manually trigger one pipeline cycle."""
+    if IS_VERCEL or settings.demo_mode:
+        return {"status": "unavailable", "message": "Pipeline not available in demo mode."}
+
     state_ref = {}
 
     async def _run():
