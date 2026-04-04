@@ -3,6 +3,7 @@
     { "source": "/(.*)", "destination": "/api/index" }
   ],
   "env": {
-    "DEMO_MODE": "true"
+    "DEMO_MODE": "true",
+    "DB_PATH": "/tmp/opportunity_radar.db"
   }
 }
