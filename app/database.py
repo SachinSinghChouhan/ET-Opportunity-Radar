@@ -149,6 +149,13 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_signals_symbol ON signals(symbol);
             CREATE INDEX IF NOT EXISTS idx_opportunities_cycle ON opportunities(cycle_id);
             CREATE INDEX IF NOT EXISTS idx_opportunities_date ON opportunities(created_at);
+
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
     logger.success("Database initialized at {}", get_db_path())
 
@@ -299,6 +306,22 @@ def get_recent_insider_trades(days: int = 30) -> list[dict]:
             (f"-{days}",),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+def get_user(username: str) -> dict | None:
+    with db() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def create_user(username: str, password_hash: str):
+    with db() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)",
+            (username, password_hash),
+        )
 
 
 def get_opportunity_detail(symbol: str) -> dict | None:

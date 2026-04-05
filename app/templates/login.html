@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Opportunity Radar</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #131722; --surface: #1e222d; --surface2: #2a2e39;
+      --border: #2a2e39; --text: #d1d4dc; --muted: #787b86;
+      --green: #089981; --red: #f23645; --blue: #2962ff;
+    }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Trebuchet MS', sans-serif;
+      font-size: 13px; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 36px 40px;
+      width: 340px;
+    }
+    .logo {
+      font-size: 18px; font-weight: 700; letter-spacing: -0.3px;
+      color: #fff; margin-bottom: 6px;
+    }
+    .logo span { color: var(--blue); }
+    .subtitle { color: var(--muted); font-size: 12px; margin-bottom: 28px; }
+    label { display: block; font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);
+      margin-bottom: 6px; }
+    input {
+      width: 100%; background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 3px; padding: 8px 10px; color: var(--text);
+      font-size: 13px; outline: none; transition: border-color 0.15s;
+      margin-bottom: 16px;
+    }
+    input:focus { border-color: var(--blue); }
+    .btn {
+      width: 100%; background: var(--blue); color: #fff; border: none;
+      padding: 9px; border-radius: 3px; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.15s; margin-top: 4px;
+    }
+    .btn:hover { opacity: 0.85; }
+    .error {
+      background: rgba(242,54,69,0.1); border: 1px solid rgba(242,54,69,0.3);
+      color: var(--red); border-radius: 3px; padding: 8px 10px;
+      font-size: 12px; margin-bottom: 16px;
+    }
+    .hint {
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border);
+      color: var(--muted); font-size: 11px; line-height: 1.6;
+    }
+    .hint code {
+      background: var(--surface2); padding: 1px 5px; border-radius: 2px;
+      color: var(--text); font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-box">
+    <div class="logo"><span>Opportunity</span> Radar</div>
+    <div class="subtitle">Sign in to access the dashboard</div>
+
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+
+    <form method="post" action="/login">
+      <label for="username">Username</label>
+      <input id="username" name="username" type="text" autocomplete="username" required>
+
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" autocomplete="current-password" required>
+
+      <button class="btn" type="submit">Sign In</button>
+    </form>
+
+    <div class="hint">
+      Default credentials<br>
+      Username: <code>admin</code> &nbsp; Password: <code>admin123</code>
+    </div>
+  </div>
+</body>
+</html>
