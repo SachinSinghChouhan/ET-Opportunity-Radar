@@ -18,11 +18,6 @@ class Settings(BaseSettings):
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
     db_path: str = Field(default="./data/opportunity_radar.db", alias="DB_PATH")
 
-    # Auth
-    secret_key: str = Field(default="change-me-in-production-use-random-32-chars", alias="SECRET_KEY")
-    admin_username: str = Field(default="admin", alias="ADMIN_USERNAME")
-    admin_password: str = Field(default="admin123", alias="ADMIN_PASSWORD")
-
     # Pipeline
     pipeline_interval_seconds: int = Field(default=300, alias="PIPELINE_INTERVAL_SECONDS")
     max_signals_per_cycle: int = Field(default=20, alias="MAX_SIGNALS_PER_CYCLE")
